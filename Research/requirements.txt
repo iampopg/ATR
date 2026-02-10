@@ -1,0 +1,26 @@
+# Anti-Ransomware Research Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core file monitoring
+watchdog==3.0.0
+
+# Colored terminal output
+colorama==0.4.6
+
+# Process monitoring and system info
+psutil==5.9.0
+
+# Cryptography for hashing and security
+cryptography==41.0.0
+
+# C integration (for DLL loading)
+# ctypes is built-in, no additional package needed
+
+# Optional: For advanced entropy analysis
+# numpy==1.24.3
+# scipy==1.10.1
+
+# Development and build tools
+# Visual Studio (C compiler) - install separately
+# Windows SDK - install separately
+# PyInstaller for packaging - install when ready to build
