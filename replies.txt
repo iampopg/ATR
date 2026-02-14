@@ -1,0 +1,228 @@
+r/cybersecurity icon
+Go to cybersecurity
+r/cybersecurity
+•
+5h ago
+iiampopg
+
+Can files be protected AFTER ransomware starts running?
+Research Article
+Most ransomware advice focuses on prevention (antivirus, backups, etc).
+
+But what if malware is already executing on your system? Is there any
+
+way to protect files at that point?
+
+I'm thinking about things like:
+
+- File permission locks
+
+- Requiring authentication for file writes
+
+- Detecting mass encryption attempts
+
+Is this realistic or is prevention the only option?
+
+Curious what security folks think about "last line of defense" protection.
+
+Crosspost to more communities
+
+Upvote
+16
+
+Downvote
+
+10
+Go to comments
+
+
+Share
+
+Promote Post
+Post insights are unavailable
+Join the conversation
+Sort by:
+
+Best
+
+Search Comments
+Expand comment search
+Comments Section
+2timetime
+•
+1h ago
+EDR can block it. Last year I watched Defender block Akira v2
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/TruReyito avatar
+TruReyito
+•
+5h ago
+•
+Edited 4h ago
+Not sure where you get the idea of "most advice" from. Modern security strategy starts with "assume breach". Stopping it before delivery is nice. But you can't guarantee it, so that's when you architect the other strategies you mention. Immutable backups. Data seperations. Etc.
+
+You mentioned detecting.... don't get me wrong. That's important but detection is NOT protection. Finding out a process has encrypted 100s of files is nice to start responding, but by the time you notice payload will have been executed already. Most modern EDRS recognize ransomware behavior. Canary files that have no n reason to be accessed except by a malware scanner/encrypter can be monitored for changes.... lots of detective logic can be effectively utilized... but detection is not protection.
+
+The crucial key though is you have to have strategy pre-built. You aren't going to detect malware and then initiate mass file write lock downs. You aren't going to suddenly stop your 5 min backups to prevent encryption from copying over your archive.
+
+You architect the defensive players into the system... so that if ransomware deploys your "detections" give you the time to limit the spread. But wherever the ransomware drops (and successfully execute) is likely already a casualty.
+
+
+Upvote
+15
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Sqooky avatar
+Sqooky
+•
+4h ago
+Red Team
+Profile Badge for the Achievement Top 1% Commenter Top 1% Commenter
+A lot of what you've stated is already done, or tried to be done by modern AV/EDR. I'll give you an example, some AV vendors will drop (what appear to be) files on the filesystem. Normally they're hidden to a user, but programmatically listing files may sometimes reveal them. If encrypted, check the calling process that wrote data to the file, then try to kill it.
+
+Problem is, there's a million (hyperbole) different work arounds.
+
+What if you manually parse the MFT, and writing data directly to disk? For most impact ransomware should be running as administrator. At that point, what's a file lock going to do if it's circumventing NTFS permissions?
+
+Or what if certain techniques that EDR vendors employ not to have their EDR solution killed were implemented in Ransomware?
+
+It's a cat and mouse game. Not a lot of it is new ideas, thoughts, or techniques. It's just hard to cover everything. Detection is possible, prevention is hard. Don't let it get to the point where you have to detect or prevent Ransomware. Generally speaking, the device (or domain) is fully compromised. Definitely don't let it get to that point.
+
+
+Upvote
+8
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+cbowers
+•
+2h ago
+I don't really think of "last line of defence" I think of all lines of defence. For any given attack on any given day... it's not the same layer that saves the day. It's all of them working in concert, and a different layer takes the spotlight at different times. Though I will say... at the endpoint, a good endpoint protection is a few of those layers and more often takes the spotlight. For me:
+
+ESET Network layers might terminate connections based on behaviour or target service.
+
+ESET HIPS (manually crafted) rules might proactively block child process spawning from processes that are not expected to be spawning child processes, or from certain scripting hosts. Or might block process termination.
+
+Ransomware specific components would kick in: https://help.eset.com/ees/12/en-US/ransomware_remediation.html
+
+I've had lots of saves there, but it's possible to get under that layer. It's not invincible. You'll need a supply chain management process, patching and vulnerability management process to try and mitigate exploiting known and unknown vulnerabilities to disable AV, or get a rootkit below it.
+
+Depending on your physical access environment, and OEM component firmware patching... one likely is best served with visibility into UEFI and component firmware CVE's and patching with a platform like Eclypsium
+
+
+Upvote
+3
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Gorstak-Zadar avatar
+Gorstak-Zadar
+•
+4h ago
+On Windows, if UAC is set to max, any file operations done by users require UAC confirmation. Defender has protected folders feature, meaning you can assign folders you don't want encrypted by anything. So, what you saved you saved, after infection reinstall OS and restore your saved data. There is also a reg value which prevents encrypting file system, but you can't use bitlocker in that case.
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Admirable_Group_6661
+•
+2h ago
+Security Architect
+A complete control will require preventive, detective, and corrective controls to properly mitigate the risk of ransomware.
+
+First, initiate your IR plan (the corrective part). You should be containing the damage (as oppose to trying to fix things). Once that's done, you can look at recovery (to normal). The safest approach is to burn and rebuild. If you don't have backups, then you are unfortunately cooked.
+
+Also, be mindful of your MTD (unfortunately in scenarios like this, it will likely be exceeded). In which case, you need to reach out to the accountable individual to declare a disaster and start your DR process.
+
+Notice it's a lot of focus on processes as oppose to tech...
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+caribbeanjon
+•
+2h ago
+Any substantial file system is going to take forever to change individual file permissions to the point of being highly ineffective. You might as well take the mount offline and remount read-only if this is all you have. More realistically, if the malware is running, then hopefully your EDR will detect and kill it. In terms of recovery, backup is ok but snapshots are much faster if you have them.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Wolpertingar
+•
+1h ago
+In one of my last companies, we used FSRM to check the files for common encryption file name extensions (.locky, .enc and so on). If somebody created such a file, a powershell script put the user in a deny group, so he could not access the share any longer.
+
+Surely not the best solution, and had some false positives, but as "last line of defense" , it was okay.
+
+Modern EDR systems should be able to do this better, not solely relying on the extension.
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+

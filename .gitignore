@@ -3,23 +3,21 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
+*.egg
 *.egg-info/
 dist/
-*.egg
-
-# Virtual Environment
-atrenv/
+build/
+*.pyc
 venv/
-env/
+atrenv/
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Logs
-*.log
+# C compiled files
+*.o
+*.dll
+*.exe
+*.obj
+*.lib
+*.exp
 
 # IDE
 .vscode/
@@ -31,11 +29,12 @@ env/
 .DS_Store
 Thumbs.db
 
-# Temporary files
+# Logs
+*.log
+*.db
+*.sqlite
+
+# Test files
+test_*.txt
 /tmp/
 *.tmp
-used_tokens.json
-
-# Personal notes
-note.txt
-replies.txt
