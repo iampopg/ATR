@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anti-Ransomware Protection System</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background: #1e293b;
+            border-right: 1px solid #334155;
+            padding: 20px;
+        }
+        
+        .sidebar h2 {
+            color: #f8fafc;
+            font-size: 18px;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #334155;
+        }
+        
+        .nav-item {
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            color: #94a3b8;
+        }
+        
+        .nav-item:hover {
+            background: #334155;
+            color: #f8fafc;
+        }
+        
+        .nav-item.active {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+        }
+        
+        .header {
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #f8fafc;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .card h3 {
+            color: #f8fafc;
+            font-size: 16px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #cbd5e1;
+            font-size: 13px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .form-group small {
+            display: block;
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            margin-left: 10px;
+        }
+        
+        .btn-secondary {
+            background: #475569;
+            color: white;
+            margin-left: 10px;
+        }
+        
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 13px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .path-list {
+            list-style: none;
+        }
+        
+        .path-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .path-item span {
+            color: #e2e8f0;
+            font-size: 13px;
+            font-family: monospace;
+        }
+        
+        .path-item button {
+            padding: 5px 12px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background: #10b98120;
+            color: #10b981;
+        }
+        
+        .status-inactive {
+            background: #ef444420;
+            color: #ef4444;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+        
+        th {
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        td {
+            color: #e2e8f0;
+            font-size: 13px;
+        }
+        
+        .log-entry {
+            padding: 10px;
+            background: #0f172a;
+            border-left: 3px solid #3b82f6;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
+        .log-blocked { border-left-color: #ef4444; }
+        .log-allowed { border-left-color: #10b981; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Anti-Ransomware</h2>
+        <div class="nav-item active" onclick="showSection('dashboard')">Dashboard</div>
+        <div class="nav-item" onclick="showSection('paths')">Protected Paths</div>
+        <div class="nav-item" onclick="showSection('rules')">Security Rules</div>
+        <div class="nav-item" onclick="showSection('permissions')">File Permissions</div>
+        <div class="nav-item" onclick="showSection('monitoring')">Monitoring</div>
+        <div class="nav-item" onclick="showSection('logs')">Activity Logs</div>
+    </div>
+    
+    <div class="main-content">
+        <div class="header">
+            <h1>Security Configuration</h1>
+            <p>Configure ransomware protection policies and monitoring rules</p>
+        </div>
+        
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section active">
+            <div class="card">
+                <h3>System Status</h3>
+                <table>
+                    <tr>
+                        <td>Protection Status</td>
+                        <td><span class="status-badge status-inactive" id="protection-status">Inactive</span></td>
+                    </tr>
+                    <tr>
+                        <td>Monitored Paths</td>
+                        <td id="monitored-paths-count">0</td>
+                    </tr>
+                    <tr>
+                        <td>Active Rules</td>
+                        <td id="active-rules-count">0</td>
+                    </tr>
+                    <tr>
+                        <td>Blocked Operations (24h)</td>
+                        <td id="blocked-count">0</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Protected Paths Section -->
+        <div id="paths" class="section">
+            <div class="card">
+                <h3>Add Protected Path</h3>
+                <div class="form-group">
+                    <label>Directory Path</label>
+                    <input type="text" id="new-path" placeholder="/home/user/documents">
+                    <small>Absolute path to directory that requires protection</small>
+                </div>
+                <div class="form-group">
+                    <label>Protection Level</label>
+                    <select id="protection-level">
+                        <option value="full">Full Protection (Block all unauthorized access)</option>
+                        <option value="read-only">Read-Only (Allow reads, block writes)</option>
+                        <option value="monitor">Monitor Only (Log but don't block)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="addPath()">Add Path</button>
+            </div>
+            
+            <div class="card">
+                <h3>Protected Paths</h3>
+                <ul class="path-list" id="path-list">
+                    <li class="path-item">
+                        <span>No paths configured</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Security Rules Section -->
+        <div id="rules" class="section">
+            <div class="card">
+                <h3>File Extension Rules</h3>
+                <div class="form-group">
+                    <label>Block Extensions</label>
+                    <textarea id="blocked-extensions" placeholder=".exe&#10;.dll&#10;.bat&#10;.ps1"></textarea>
+                    <small>One extension per line. Files with these extensions will be blocked.</small>
+                </div>
+                <button class="btn btn-primary" onclick="saveExtensions()">Save Extensions</button>
+            </div>
+            
+            <div class="card">
+                <h3>Entropy Detection</h3>
+                <div class="form-group">
+                    <label>Entropy Threshold</label>
+                    <input type="number" id="entropy-threshold" value="7.5" step="0.1" min="0" max="8">
+                    <small>Files with entropy above this value are flagged as potentially encrypted (0-8 bits/byte)</small>
+                </div>
+                <div class="form-group">
+                    <label>Action on High Entropy</label>
+                    <select id="entropy-action">
+                        <option value="block">Block Operation</option>
+                        <option value="alert">Alert Only</option>
+                        <option value="quarantine">Quarantine File</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="saveEntropySettings()">Save Settings</button>
+            </div>
+        </div>
+        
+        <!-- File Permissions Section -->
+        <div id="permissions" class="section">
+            <div class="card">
+                <h3>Process Whitelist</h3>
+                <div class="form-group">
+                    <label>Allowed Processes</label>
+                    <textarea id="allowed-processes" placeholder="/usr/bin/python3&#10;/usr/bin/vim&#10;/bin/bash"></textarea>
+                    <small>Full paths to processes allowed to access protected files without token</small>
+                </div>
+                <button class="btn btn-primary" onclick="saveProcesses()">Save Whitelist</button>
+            </div>
+            
+            <div class="card">
+                <h3>Token Configuration</h3>
+                <div class="form-group">
+                    <label>Token Validity Duration (minutes)</label>
+                    <input type="number" id="token-duration" value="10" min="1" max="60">
+                </div>
+                <div class="form-group">
+                    <label>Require Token For</label>
+                    <select id="token-requirement">
+                        <option value="write">Write Operations Only</option>
+                        <option value="read-write">Read and Write Operations</option>
+                        <option value="all">All File Access</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="saveTokenConfig()">Save Configuration</button>
+            </div>
+        </div>
+        
+        <!-- Monitoring Section -->
+        <div id="monitoring" class="section">
+            <div class="card">
+                <h3>Start Protection</h3>
+                <div class="form-group">
+                    <label>Master Password</label>
+                    <input type="text" id="master-password" placeholder="Enter master password">
+                    <small>Required to generate access tokens</small>
+                </div>
+                <button class="btn btn-success" onclick="startProtection()">Start Protection</button>
+                <button class="btn btn-danger" onclick="stopProtection()">Stop Protection</button>
+            </div>
+            
+            <div class="card">
+                <h3>Real-Time Statistics</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Count</th>
+                            <th>Last Event</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-table">
+                        <tr>
+                            <td>Blocked Writes</td>
+                            <td id="stat-blocked-writes">0</td>
+                            <td id="stat-blocked-writes-time">-</td>
+                        </tr>
+                        <tr>
+                            <td>Allowed Operations</td>
+                            <td id="stat-allowed">0</td>
+                            <td id="stat-allowed-time">-</td>
+                        </tr>
+                        <tr>
+                            <td>High Entropy Detected</td>
+                            <td id="stat-entropy">0</td>
+                            <td id="stat-entropy-time">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Activity Logs Section -->
+        <div id="logs" class="section">
+            <div class="card">
+                <h3>Activity Logs</h3>
+                <div style="max-height: 500px; overflow-y: auto;" id="log-container">
+                    <div class="log-entry">No activity logged yet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const socket = io();
+        let protectedPaths = [];
+        let blockedExtensions = [];
+        
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        function addPath() {
+            const path = document.getElementById('new-path').value;
+            const level = document.getElementById('protection-level').value;
+            
+            if (!path) {
+                alert('Enter path');
+                return;
+            }
+            
+            protectedPaths.push({path, level});
+            renderPaths();
+            document.getElementById('new-path').value = '';
+        }
+        
+        function removePath(index) {
+            protectedPaths.splice(index, 1);
+            renderPaths();
+        }
+        
+        function renderPaths() {
+            const list = document.getElementById('path-list');
+            if (protectedPaths.length === 0) {
+                list.innerHTML = '<li class="path-item"><span>No paths configured</span></li>';
+                return;
+            }
+            
+            list.innerHTML = protectedPaths.map((p, i) => `
+                <li class="path-item">
+                    <span>${p.path} (${p.level})</span>
+                    <button onclick="removePath(${i})">Remove</button>
+                </li>
+            `).join('');
+            
+            document.getElementById('monitored-paths-count').textContent = protectedPaths.length;
+        }
+        
+        function saveExtensions() {
+            const text = document.getElementById('blocked-extensions').value;
+            blockedExtensions = text.split('\n').filter(e => e.trim());
+            alert(`Saved ${blockedExtensions.length} extensions`);
+        }
+        
+        function saveEntropySettings() {
+            const threshold = document.getElementById('entropy-threshold').value;
+            const action = document.getElementById('entropy-action').value;
+            alert(`Entropy threshold: ${threshold}, Action: ${action}`);
+        }
+        
+        function saveProcesses() {
+            const text = document.getElementById('allowed-processes').value;
+            const processes = text.split('\n').filter(p => p.trim());
+            alert(`Saved ${processes.length} allowed processes`);
+        }
+        
+        function saveTokenConfig() {
+            const duration = document.getElementById('token-duration').value;
+            const requirement = document.getElementById('token-requirement').value;
+            alert(`Token duration: ${duration} min, Requirement: ${requirement}`);
+        }
+        
+        function startProtection() {
+            const password = document.getElementById('master-password').value;
+            if (!password) {
+                alert('Enter master password');
+                return;
+            }
+            
+            if (protectedPaths.length === 0) {
+                alert('Add at least one protected path');
+                return;
+            }
+            
+            document.getElementById('protection-status').textContent = 'Active';
+            document.getElementById('protection-status').className = 'status-badge status-active';
+            
+            addLog('Protection started', 'allowed');
+        }
+        
+        function stopProtection() {
+            document.getElementById('protection-status').textContent = 'Inactive';
+            document.getElementById('protection-status').className = 'status-badge status-inactive';
+            addLog('Protection stopped', 'blocked');
+        }
+        
+        function addLog(message, type) {
+            const container = document.getElementById('log-container');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            container.insertBefore(entry, container.firstChild);
+        }
+        
+        socket.on('connect', () => {
+            console.log('Connected');
+        });
+    </script>
+</body>
+</html>
