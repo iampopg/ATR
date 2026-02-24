@@ -251,10 +251,87 @@
             border-radius: 4px;
             font-size: 12px;
             font-family: monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .log-message {
+            flex: 1;
+            margin-right: 10px;
+        }
+        
+        .log-tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
         
         .log-blocked { border-left-color: #ef4444; }
         .log-allowed { border-left-color: #10b981; }
+        .log-entropy { border-left-color: #f97316; }
+        
+        .tag-blocked {
+            background: #ef444420;
+            color: #fecaca;
+        }
+        
+        .tag-allowed {
+            background: #10b98120;
+            color: #a7f3d0;
+        }
+        
+        .tag-entropy {
+            background: #f9731620;
+            color: #fed7aa;
+        }
+        
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        
+        .filter-button {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid #334155;
+            background: transparent;
+            color: #cbd5e1;
+            font-size: 12px;
+            margin-right: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        
+        .filter-button:hover {
+            background: #1e293b;
+        }
+        
+        .filter-button.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: #f9fafb;
+        }
+        
+        .sparkline-bar {
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: #020617;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .sparkline-fill-allowed {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #22c55e);
+        }
+        
+        .sparkline-fill-blocked {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #f97316);
+        }
     </style>
 </head>
 <body>
@@ -270,8 +347,8 @@
     
     <div class="main-content">
         <div class="header">
-            <h1>Security Configuration</h1>
-            <p>Configure ransomware protection policies and monitoring rules</p>
+            <h1>Security Dashboard</h1>
+            <p>See protection status at a glance and manage anti-ransomware policies</p>
         </div>
         
         <!-- Dashboard Section -->
@@ -295,7 +372,25 @@
                         <td>Blocked Operations (24h)</td>
                         <td id="blocked-count">0</td>
                     </tr>
+                    <tr>
+                        <td>Last Alert</td>
+                        <td id="last-alert-time">No alerts yet</td>
+                    </tr>
                 </table>
+                <div style="margin-top: 16px;">
+                    <div style="margin-bottom: 6px; font-size: 11px; color: #64748b;">Traffic (Blocked vs Allowed)</div>
+                    <div class="sparkline-bar">
+                        <div id="sparkline-allowed" class="sparkline-fill-allowed" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Quick Actions</h3>
+                <div class="form-group">
+                    <button class="btn btn-success" onclick="goToMonitoringAndStart()">Start Protection</button>
+                    <button class="btn btn-danger" onclick="goToMonitoringAndStop()">Stop Protection</button>
+                    <button class="btn btn-secondary" onclick="goToPaths()">Configure Paths</button>
+                </div>
             </div>
         </div>
         
@@ -307,6 +402,19 @@
                     <label>Directory Path</label>
                     <input type="text" id="new-path" placeholder="/home/user/documents">
                     <small>Absolute path to directory that requires protection</small>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="path-category">
+                        <option value="documents">Documents</option>
+                        <option value="code">Source Code</option>
+                        <option value="backups">Backups</option>
+                        <option value="media">Media</option>
+                        <option value="browser-data">Browser Data</option>
+                        <option value="wallets">Wallets</option>
+                        <option value="custom" selected>Custom</option>
+                    </select>
+                    <small>Helps explain why this directory is protected (inspired by NoMoreStealer categories)</small>
                 </div>
                 <div class="form-group">
                     <label>Protection Level</label>
@@ -399,8 +507,21 @@
                     <input type="text" id="master-password" placeholder="Enter master password">
                     <small>Required to generate access tokens</small>
                 </div>
+                <div class="form-group">
+                    <label>Path to Monitor</label>
+                    <select id="monitor-path-select">
+                        <option value="">Select from protected paths</option>
+                    </select>
+                    <small>Choose which protected directory to actively monitor</small>
+                </div>
                 <button class="btn btn-success" onclick="startProtection()">Start Protection</button>
                 <button class="btn btn-danger" onclick="stopProtection()">Stop Protection</button>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Token Status</label>
+                    <div id="token-status-text" style="font-size: 13px; color: #cbd5e1;">
+                        No active token. Generate a token from the CLI monitor to enable writes.
+                    </div>
+                </div>
             </div>
             
             <div class="card">
@@ -438,6 +559,12 @@
         <div id="logs" class="section">
             <div class="card">
                 <h3>Activity Logs</h3>
+                <div class="filter-group">
+                    <button class="filter-button active" data-filter="all" onclick="setLogFilter('all', event)">All</button>
+                    <button class="filter-button" data-filter="blocked" onclick="setLogFilter('blocked', event)">Blocked</button>
+                    <button class="filter-button" data-filter="allowed" onclick="setLogFilter('allowed', event)">Allowed</button>
+                    <button class="filter-button" data-filter="entropy" onclick="setLogFilter('entropy', event)">High Entropy</button>
+                </div>
                 <div style="max-height: 500px; overflow-y: auto;" id="log-container">
                     <div class="log-entry">No activity logged yet</div>
                 </div>
@@ -449,24 +576,31 @@
         const socket = io();
         let protectedPaths = [];
         let blockedExtensions = [];
+        let logs = [];
+        let logFilter = 'all';
+        let totalBlocked = 0;
+        let totalAllowed = 0;
         
-        function showSection(sectionId) {
+        function showSection(sectionId, evt) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(sectionId).classList.add('active');
-            event.target.classList.add('active');
+            if (evt && evt.target) {
+                evt.target.classList.add('active');
+            }
         }
         
         function addPath() {
             const path = document.getElementById('new-path').value;
             const level = document.getElementById('protection-level').value;
+            const category = document.getElementById('path-category').value;
             
             if (!path) {
                 alert('Enter path');
                 return;
             }
             
-            protectedPaths.push({path, level});
+            protectedPaths.push({path, level, category});
             renderPaths();
             document.getElementById('new-path').value = '';
         }
@@ -480,17 +614,22 @@
             const list = document.getElementById('path-list');
             if (protectedPaths.length === 0) {
                 list.innerHTML = '<li class="path-item"><span>No paths configured</span></li>';
+                document.getElementById('monitor-path-select').innerHTML = '<option value=\"\">Select from protected paths</option>';
                 return;
             }
             
             list.innerHTML = protectedPaths.map((p, i) => `
                 <li class="path-item">
-                    <span>${p.path} (${p.level})</span>
+                    <span>${p.path} (${p.level}, ${p.category})</span>
                     <button onclick="removePath(${i})">Remove</button>
                 </li>
             `).join('');
             
             document.getElementById('monitored-paths-count').textContent = protectedPaths.length;
+
+            const select = document.getElementById('monitor-path-select');
+            select.innerHTML = '<option value=\"\">Select from protected paths</option>' +
+                protectedPaths.map((p, i) => `<option value=\"${i}\">${p.path}</option>`).join('');
         }
         
         function saveExtensions() {
@@ -532,7 +671,11 @@
             document.getElementById('protection-status').textContent = 'Active';
             document.getElementById('protection-status').className = 'status-badge status-active';
             
-            addLog('Protection started', 'allowed');
+            const monitorSelect = document.getElementById('monitor-path-select');
+            const selectedIndex = monitorSelect.value;
+            const pathLabel = selectedIndex !== '' ? protectedPaths[selectedIndex].path : 'selected paths';
+            
+            addLog(`Protection started for ${pathLabel}`, 'allowed');
         }
         
         function stopProtection() {
@@ -542,11 +685,83 @@
         }
         
         function addLog(message, type) {
+            const timestamp = new Date();
+            logs.unshift({ message, type, timestamp });
+
+            if (type === 'blocked') totalBlocked += 1;
+            if (type === 'allowed') totalAllowed += 1;
+
+            document.getElementById('blocked-count').textContent = totalBlocked;
+            document.getElementById('last-alert-time').textContent = timestamp.toLocaleTimeString();
+
+            const total = totalBlocked + totalAllowed;
+            const allowedPct = total > 0 ? Math.round((totalAllowed / total) * 100) : 0;
+            document.getElementById('sparkline-allowed').style.width = allowedPct + '%';
+
+            renderLogs();
+        }
+
+        function renderLogs() {
             const container = document.getElementById('log-container');
-            const entry = document.createElement('div');
-            entry.className = `log-entry log-${type}`;
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            container.insertBefore(entry, container.firstChild);
+            if (logs.length === 0) {
+                container.innerHTML = '<div class=\"log-entry\"><span class=\"log-message\">No activity logged yet</span></div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            logs.filter(l => {
+                if (logFilter === 'all') return true;
+                return l.type === logFilter;
+            }).forEach(log => {
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${log.type}`;
+
+                const msgSpan = document.createElement('span');
+                msgSpan.className = 'log-message';
+                msgSpan.textContent = `[${log.timestamp.toLocaleTimeString()}] ${log.message}`;
+
+                const tagSpan = document.createElement('span');
+                let tagClass = 'tag-allowed';
+                let tagLabel = 'ALLOWED';
+                if (log.type === 'blocked') {
+                    tagClass = 'tag-blocked';
+                    tagLabel = 'BLOCKED';
+                } else if (log.type === 'entropy') {
+                    tagClass = 'tag-entropy';
+                    tagLabel = 'HIGH ENTROPY';
+                }
+                tagSpan.className = `log-tag ${tagClass}`;
+                tagSpan.textContent = tagLabel;
+
+                entry.appendChild(msgSpan);
+                entry.appendChild(tagSpan);
+                container.appendChild(entry);
+            });
+        }
+
+        function setLogFilter(filter, evt) {
+            logFilter = filter;
+            document.querySelectorAll('.filter-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-filter') === filter) {
+                    btn.classList.add('active');
+                }
+            });
+            renderLogs();
+        }
+
+        function goToMonitoringAndStart() {
+            showSection('monitoring');
+            startProtection();
+        }
+
+        function goToMonitoringAndStop() {
+            showSection('monitoring');
+            stopProtection();
+        }
+
+        function goToPaths() {
+            showSection('paths');
         }
         
         socket.on('connect', () => {
